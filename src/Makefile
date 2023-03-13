@@ -51,48 +51,52 @@ else
     CC = arm-none-eabi-gcc
     LD = arm-none-eabi-ld
     LDFLAGS = -Wl,-Map=$(TARGET).map -T $(LINKER_FILE)
-    CFLAGS = $(CPU) $(ARCH) $(SPEC) -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -Wall -Werror -g -O0 -std=c99
+    CFLAGS = $(CPU) $(ARCH) $(SPEC) -Wall -flto -ffreestanding 
     CPPFLAGs = -E
 
 endif
 
 #Getting all object files
 OBJECTS = $(SOURCES:.c=.o)
-PREPROCESSED = $(SOURCES:.c=.i)
-ASSEMBLED = $(SOURCES:.c=.asm)
-DEPENDENCIES = $(SOURCES:.c=.dep)
-
-#Getting preprocessed files
-%.i : %.c
-	$(CC) -E $< $(CFLAGS) $(INCLUDES) -D$(PLATFORM) -o $@
-
-#Getting assembly files
-%.asm : %.c
-	$(CC) -S $< $(CFLAGS) $(INCLUDES) -D$(PLATFORM) -o $@
-
 #Getting the object files
 %.o : %.c
 	$(CC) -c $< $(CFLAGS) $(INCLUDES) -D$(PLATFORM) -o $@
 
+PREPROCESSED = $(SOURCES:.c=.i)
+#Getting preprocessed files
+%.i : %.c
+	$(CC) -E $< $(CFLAGS) $(INCLUDES) -D$(PLATFORM) -o $@
+
+ASSEMBLED = $(SOURCES:.c=.asm)
+#Getting assembly files
+%.asm : %.c
+	$(CC) -S $< $(CFLAGS) $(INCLUDES) -D$(PLATFORM) -o $@
+
+DEPENDENCIES = $(SOURCES:.c=.d)
+%.d : %.c
+	$(CC) $(CFLAGS) $(INCLUDES) -D$(PLATFORM) -M $< -MF $@
+
+
+
 #Compile all but do not link
 .PHONY: compile-all
-compile-all:
-ifeq ($(PLATFORM), HOST)
-	$(CC) -c main.c $(CFLAGS) $(INCLUDES) -D$(PLATFORM) -o main.o
-	$(CC) -c memory.c $(CFLAGS) $(INCLUDES) -D$(PLATFORM) -o memory.o
-else
-	$(CC) -c main.c $(CFLAGS) $(INCLUDES) -D$(PLATFORM) -o main.o
-	$(CC) -c memory.c $(CFLAGS) $(INCLUDES) -D$(PLATFORM) -o memory.o
-	$(CC) -c interrupts_msp432p401r_gcc.c $(CFLAGS) $(INCLUDES) -D$(PLATFORM) -o interrupts_msp432p401r_gcc.o
-	$(CC) -c startup_msp432p401r_gcc.c $(CFLAGS) $(INCLUDES) -D$(PLATFORM) -o startup_msp432p401r_gcc.o
-	$(CC) -c system_msp432p401r.c $(CFLAGS) $(INCLUDES) -D$(PLATFORM) -o system_msp432p401r.o
-endif
+compile-all: $(OBJECTS)
+#ifeq ($(PLATFORM), HOST)
+#	$(CC) -c main.c $(CFLAGS) $(INCLUDES) -D$(PLATFORM) -o main.o
+#	$(CC) -c memory.c $(CFLAGS) $(INCLUDES) -D$(PLATFORM) -o memory.o
+#else
+#	$(CC) -c main.c $(CFLAGS) $(INCLUDES) -D$(PLATFORM) -o main.o
+#	$(CC) -c memory.c $(CFLAGS) $(INCLUDES) -D$(PLATFORM) -o memory.o
+#	$(CC) -c interrupts_msp432p401r_gcc.c $(CFLAGS) $(INCLUDES) -D$(PLATFORM) -o interrupts_msp432p401r_gcc.o
+#	$(CC) -c startup_msp432p401r_gcc.c $(CFLAGS) $(INCLUDES) -D$(PLATFORM) -o startup_msp432p401r_gcc.o
+#	$(CC) -c system_msp432p401r.c $(CFLAGS) $(INCLUDES) -D$(PLATFORM) -o system_msp432p401r.o
+#endif
 		
 
 #Compile and link into a final executable
 .PHONY: build
-build: compile-all
-	$(CC) $(OBJECTS)  $(CFLAGS) $(INCLUDES) $(LDFLAGS) -D$(PLATFORM)  -o $(TARGET).out 
+build: compile-all $(DEPENDENCIES)
+	$(CC) $(OBJECTS)  $(CFLAGS)  $(LDFLAGS) -D$(PLATFORM)  -o $(TARGET).out 
 
 
 #Clean (delete) all genereated files
