@@ -50,8 +50,8 @@ else
     # Compiler Flags and Defines
     CC = arm-none-eabi-gcc
     LD = arm-none-eabi-ld
-    LDFLAGS = -Wl,-Map=$(TARGET).map -T $(LINKER_FILE)
-    CFLAGS = $(CPU) $(ARCH) $(SPEC) -Wall -flto -ffreestanding 
+    LDFLAGS = -Wl,-Map=$(TARGET).map -T$(LINKER_FILE)
+    CFLAGS = $(CPU) $(ARCH) $(SPECS) -Wall  
     CPPFLAGs = -E
 
 endif
